@@ -32,10 +32,7 @@ CSS can read state and do arithmetic, but it can't change state on its own. The 
 | Output | CSS counters (`counter-reset` + `content: counter()`) |
 | Clock | **You.** One click is one step. |
 
-The full explanations are in the two write-ups:
-
-- [`ARTICLE.md`](ARTICLE.md) covers memory, the while loop, the if/else, and Euclid's GCD.
-- [`BINARY-SEARCH.md`](BINARY-SEARCH.md) covers LeetCode 704: `mid` calculation, array lookup without arrays, the three-way branch, and how the test harness checked all 120 cases.
+The full explanation of memory, the while loop, the if/else, and Euclid's GCD is in [`ARTICLE.md`](ARTICLE.md).
 
 ## Files
 
@@ -44,7 +41,6 @@ index.html          the page: all four demos
 style.css           base styles plus the while, if/else and GCD machines
 binary-search.css   the binary search machine
 ARTICLE.md          write-up: while loop, if/else, GCD
-BINARY-SEARCH.md    write-up: LeetCode 704
 ```
 
 ## Run it locally
