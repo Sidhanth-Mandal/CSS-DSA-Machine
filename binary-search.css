@@ -1,0 +1,332 @@
+/* =====================================================================
+   LEETCODE 704 · BINARY SEARCH, IN PURE CSS
+   Loaded after style.css, which supplies the page chrome, the tapes,
+   the step window (.step / .strip) and the 0/1 gates (.when-*, .lit-*).
+
+   int lo = 0, hi = n - 1;
+   while (lo <= hi) {
+     int mid = lo + (hi - lo) / 2;
+     if (nums[mid] == target) return mid;
+     else if (nums[mid] < target) lo = mid + 1;
+     else hi = mid - 1;
+   }
+   return -1;
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. Typed registers
+   --------------------------------------------------------------------- */
+@property --lo      { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --hi      { syntax: '<integer>'; inherits: true; initial-value: 9; }
+@property --t       { syntax: '<integer>'; inherits: true; initial-value: 1; }
+@property --mid     { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --m       { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --eq      { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --active  { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --found   { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --missing { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --right   { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --left    { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --busy    { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v0 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v1 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v2 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v3 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v4 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v5 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v6 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v7 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v8 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --v9 { syntax: '<integer>'; inherits: true; initial-value: 0; }
+
+/* ---------------------------------------------------------------------
+   2. Memory -> registers
+   --------------------------------------------------------------------- */
+
+/* nums: three sorted datasets, picked by one radio group */
+#ds-1:checked ~ .machine { --v0: 2; --v1: 5; --v2: 8;  --v3: 12; --v4: 16; --v5: 23; --v6: 27; --v7: 31; --v8: 38; --v9: 40; }
+#ds-2:checked ~ .machine { --v0: 1; --v1: 3; --v2: 4;  --v3: 7;  --v4: 9;  --v5: 11; --v6: 15; --v7: 20; --v8: 26; --v9: 33; }
+#ds-3:checked ~ .machine { --v0: 6; --v1: 10; --v2: 13; --v3: 14; --v4: 18; --v5: 21; --v6: 25; --v7: 29; --v8: 34; --v9: 39; }
+
+#ds-1:checked ~ .machine .preset[for="ds-1"],
+#ds-2:checked ~ .machine .preset[for="ds-2"],
+#ds-3:checked ~ .machine .preset[for="ds-3"] {
+  border-color: var(--accent);
+  color: var(--text);
+  background: color-mix(in oklab, var(--accent) 12%, var(--panel-2));
+}
+
+/* lo: 0 .. 10   (10 means "ran off the right end") */
+#lo-0:checked  ~ .machine { --lo: 0; }
+#lo-1:checked  ~ .machine { --lo: 1; }
+#lo-2:checked  ~ .machine { --lo: 2; }
+#lo-3:checked  ~ .machine { --lo: 3; }
+#lo-4:checked  ~ .machine { --lo: 4; }
+#lo-5:checked  ~ .machine { --lo: 5; }
+#lo-6:checked  ~ .machine { --lo: 6; }
+#lo-7:checked  ~ .machine { --lo: 7; }
+#lo-8:checked  ~ .machine { --lo: 8; }
+#lo-9:checked  ~ .machine { --lo: 9; }
+#lo-10:checked ~ .machine { --lo: 10; }
+
+/* hi: -1 .. 9   (-1 means "ran off the left end") */
+#hi-m1:checked ~ .machine { --hi: -1; }
+#hi-0:checked  ~ .machine { --hi: 0; }
+#hi-1:checked  ~ .machine { --hi: 1; }
+#hi-2:checked  ~ .machine { --hi: 2; }
+#hi-3:checked  ~ .machine { --hi: 3; }
+#hi-4:checked  ~ .machine { --hi: 4; }
+#hi-5:checked  ~ .machine { --hi: 5; }
+#hi-6:checked  ~ .machine { --hi: 6; }
+#hi-7:checked  ~ .machine { --hi: 7; }
+#hi-8:checked  ~ .machine { --hi: 8; }
+#hi-9:checked  ~ .machine { --hi: 9; }
+
+/* target: 1 .. 40 */
+#t-1:checked  ~ .machine { --t: 1; }
+#t-2:checked  ~ .machine { --t: 2; }
+#t-3:checked  ~ .machine { --t: 3; }
+#t-4:checked  ~ .machine { --t: 4; }
+#t-5:checked  ~ .machine { --t: 5; }
+#t-6:checked  ~ .machine { --t: 6; }
+#t-7:checked  ~ .machine { --t: 7; }
+#t-8:checked  ~ .machine { --t: 8; }
+#t-9:checked  ~ .machine { --t: 9; }
+#t-10:checked ~ .machine { --t: 10; }
+#t-11:checked ~ .machine { --t: 11; }
+#t-12:checked ~ .machine { --t: 12; }
+#t-13:checked ~ .machine { --t: 13; }
+#t-14:checked ~ .machine { --t: 14; }
+#t-15:checked ~ .machine { --t: 15; }
+#t-16:checked ~ .machine { --t: 16; }
+#t-17:checked ~ .machine { --t: 17; }
+#t-18:checked ~ .machine { --t: 18; }
+#t-19:checked ~ .machine { --t: 19; }
+#t-20:checked ~ .machine { --t: 20; }
+#t-21:checked ~ .machine { --t: 21; }
+#t-22:checked ~ .machine { --t: 22; }
+#t-23:checked ~ .machine { --t: 23; }
+#t-24:checked ~ .machine { --t: 24; }
+#t-25:checked ~ .machine { --t: 25; }
+#t-26:checked ~ .machine { --t: 26; }
+#t-27:checked ~ .machine { --t: 27; }
+#t-28:checked ~ .machine { --t: 28; }
+#t-29:checked ~ .machine { --t: 29; }
+#t-30:checked ~ .machine { --t: 30; }
+#t-31:checked ~ .machine { --t: 31; }
+#t-32:checked ~ .machine { --t: 32; }
+#t-33:checked ~ .machine { --t: 33; }
+#t-34:checked ~ .machine { --t: 34; }
+#t-35:checked ~ .machine { --t: 35; }
+#t-36:checked ~ .machine { --t: 36; }
+#t-37:checked ~ .machine { --t: 37; }
+#t-38:checked ~ .machine { --t: 38; }
+#t-39:checked ~ .machine { --t: 39; }
+#t-40:checked ~ .machine { --t: 40; }
+
+/* ---------------------------------------------------------------------
+   3. The processor
+   --------------------------------------------------------------------- */
+.m-bs {
+  /* while (lo <= hi) */
+  --active: clamp(0, var(--hi) - var(--lo) + 1, 1);
+
+  /* mid = lo + (hi - lo) / 2   (integer division = round down) */
+  --mid: calc(var(--lo) + round(down, (var(--hi) - var(--lo)) / 2, 1));
+
+  /* nums[mid]: CSS cannot index an array with a variable, so build a
+     10-way multiplexer. k_i is 1 only when mid == i:  max(0, 1 - |mid - i|). */
+  --k0: max(0, 1 - max(var(--mid) - 0, 0 - var(--mid)));
+  --k1: max(0, 1 - max(var(--mid) - 1, 1 - var(--mid)));
+  --k2: max(0, 1 - max(var(--mid) - 2, 2 - var(--mid)));
+  --k3: max(0, 1 - max(var(--mid) - 3, 3 - var(--mid)));
+  --k4: max(0, 1 - max(var(--mid) - 4, 4 - var(--mid)));
+  --k5: max(0, 1 - max(var(--mid) - 5, 5 - var(--mid)));
+  --k6: max(0, 1 - max(var(--mid) - 6, 6 - var(--mid)));
+  --k7: max(0, 1 - max(var(--mid) - 7, 7 - var(--mid)));
+  --k8: max(0, 1 - max(var(--mid) - 8, 8 - var(--mid)));
+  --k9: max(0, 1 - max(var(--mid) - 9, 9 - var(--mid)));
+  --m: calc(
+      var(--k0) * var(--v0) + var(--k1) * var(--v1) + var(--k2) * var(--v2)
+    + var(--k3) * var(--v3) + var(--k4) * var(--v4) + var(--k5) * var(--v5)
+    + var(--k6) * var(--v6) + var(--k7) * var(--v7) + var(--k8) * var(--v8)
+    + var(--k9) * var(--v9));
+
+  /* three-way comparison of nums[mid] against target */
+  --lt: clamp(0, var(--t) - var(--m), 1);   /* nums[mid] < target */
+  --gt: clamp(0, var(--m) - var(--t), 1);   /* nums[mid] > target */
+  --eq: calc(1 - var(--lt) - var(--gt));    /* nums[mid] == target */
+
+  /* which branch of the loop body is live */
+  --found:   calc(var(--active) * var(--eq));   /* if:       return mid  */
+  --right:   calc(var(--active) * var(--lt));   /* else if:  lo = mid+1  */
+  --left:    calc(var(--active) * var(--gt));   /* else:     hi = mid-1  */
+  --missing: calc(1 - var(--active));           /* after loop: return -1 */
+
+  /* the step button exists only while there is still work to do */
+  --run: calc(var(--right) + var(--left));
+
+  /* has the search moved away from lo = 0, hi = 9? (locks the inputs) */
+  --busy: clamp(0, var(--lo) + 9 - var(--hi), 1);
+}
+
+/* Write-back. Each strip slides so the label that writes the answer is
+   in the window. lo labels start at value 0, hi labels at value -1. */
+.m-bs .strip-lo {
+  scale: var(--right);
+  translate: 0 calc((var(--mid) + 1) * var(--h) * -1);   /* row of (mid + 1) */
+}
+.m-bs .strip-hi {
+  scale: var(--left);
+  translate: 0 calc(var(--mid) * var(--h) * -1);         /* row of (mid - 1) */
+}
+.strip-hi label { background: linear-gradient(135deg, var(--accent-2), #ffb36b); }
+
+/* ---------------------------------------------------------------------
+   4. Gates for this program
+   --------------------------------------------------------------------- */
+.when-found, .when-missing, .when-right, .when-left {
+  transform-origin: left center;
+  transition: scale .2s ease;
+}
+.when-found   { scale: var(--found); }
+.when-missing { scale: var(--missing); }
+.when-right   { scale: var(--right); }
+.when-left    { scale: var(--left); }
+
+.lit-start   { --lit: calc(1 - var(--busy)); }
+.lit-active  { --lit: var(--active); }
+.lit-found   { --lit: var(--found); }
+.lit-right   { --lit: var(--right); }
+.lit-left    { --lit: var(--left); }
+.lit-missing { --lit: var(--missing); }
+
+.done.done-found   { scale: var(--found); }
+.done.done-missing {
+  scale: var(--missing);
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
+
+/* ---------------------------------------------------------------------
+   5. Displays
+   --------------------------------------------------------------------- */
+.m-bs .val-lo   { --show: var(--lo); }
+.m-bs .val-hi   { --show: var(--hi); }
+.m-bs .val-mid  { --show: var(--mid); }
+.m-bs .val-m    { --show: var(--m); }
+.m-bs .val-t    { --show: var(--t); }
+.m-bs .val-size { --show: max(0, var(--hi) - var(--lo) + 1); }
+
+.span { grid-column: 1 / -1; }
+
+/* The array. Every slot works out its own role from lo, hi and mid. */
+.arr {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+}
+.slot {
+  /* in the search space: lo <= i <= hi */
+  --inr: calc(clamp(0, var(--i) - var(--lo) + 1, 1) * clamp(0, var(--hi) - var(--i) + 1, 1));
+  --isLo:  max(0, 1 - max(var(--lo) - var(--i), var(--i) - var(--lo)));
+  --isHi:  max(0, 1 - max(var(--hi) - var(--i), var(--i) - var(--hi)));
+  --isMid: calc(max(0, 1 - max(var(--mid) - var(--i), var(--i) - var(--mid))) * var(--active));
+  --win:   calc(var(--isMid) * var(--found));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .3rem;
+  min-width: 0;
+}
+.slot .idx { font: .72rem var(--mono); color: var(--muted); }
+.slot .box {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font: 700 clamp(.8rem, 2.2vw, 1.15rem) var(--mono);
+  border: 1px solid color-mix(in oklab, var(--accent) calc(var(--isMid) * 100%), var(--line));
+  background: color-mix(in oklab,
+      var(--warn) calc(var(--win) * 100%),
+      color-mix(in oklab, var(--accent) calc(var(--isMid) * 70% + var(--inr) * 10%), var(--panel-2)));
+  color: color-mix(in oklab, var(--ink) calc(var(--isMid) * 100%), var(--text));
+  opacity: calc(.22 + .78 * var(--inr));
+  box-shadow: 0 0 calc(var(--isMid) * 22px) color-mix(in oklab, var(--accent) 55%, transparent);
+  transition: background .25s, opacity .3s, box-shadow .25s, border-color .25s, color .25s;
+}
+.ptrs {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  font: 700 .68rem/1.2 var(--mono);
+}
+.ptrs i { font-style: normal; padding: 0 .3rem; border-radius: 4px; transition: scale .2s; }
+.p-lo  { scale: var(--isLo);  color: var(--accent); }
+.p-mid { scale: var(--isMid); color: var(--ink); background: var(--accent); }
+.p-hi  { scale: var(--isHi);  color: var(--accent-2); }
+
+/* Target tape: show only the chosen cell, not a filled bar. */
+.tape-t { --v: var(--t); --tint: var(--warn); }
+.tape-t .cell { --le: 0; }
+
+.presets { display: grid; gap: .45rem; }
+.preset {
+  display: flex;
+  gap: .7rem;
+  align-items: center;
+  font: .85rem var(--mono);
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: .5rem .75rem;
+  cursor: pointer;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.preset b { color: var(--accent); }
+.preset:hover { border-color: var(--muted); }
+
+/* Lock: once lo or hi has moved, changing the input would corrupt the run. */
+.cfg { position: relative; }
+.lock {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .8rem;
+  padding: 1.5rem;
+  text-align: center;
+  background: color-mix(in oklab, var(--bg) 78%, transparent);
+  backdrop-filter: blur(3px);
+  scale: var(--busy);
+  transition: scale .2s ease;
+}
+.lock p { margin: 0; color: var(--muted); max-width: 22rem; }
+
+.problem {
+  margin-top: 2rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1.1rem 1.3rem;
+  max-width: 48rem;
+}
+.problem h3 { margin: 0 0 .4rem; font-size: 1rem; }
+.problem p { margin: .3rem 0; color: var(--muted); }
+.problem code { color: var(--text); }
+.tag {
+  display: inline-block;
+  font: 600 .72rem var(--mono);
+  color: var(--ink);
+  background: var(--accent);
+  border-radius: 999px;
+  padding: .1rem .55rem;
+  margin-right: .4rem;
+}

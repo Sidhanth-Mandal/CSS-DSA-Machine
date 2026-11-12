@@ -1,0 +1,507 @@
+/* =====================================================================
+   THE CSS MACHINE
+   Zero JavaScript. HTML is the memory, CSS is the processor,
+   and the person clicking is the clock.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. Typed registers
+   Registering a custom property as <integer> makes the browser compute
+   it to a plain number on the element where it is declared. Every
+   consumer (calc, counters, scale, translate) then receives an integer.
+   --------------------------------------------------------------------- */
+@property --n    { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --x    { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --y    { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --a    { syntax: '<integer>'; inherits: true; initial-value: 1; }
+@property --b    { syntax: '<integer>'; inherits: true; initial-value: 1; }
+@property --gt   { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --lt   { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --run  { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --max  { syntax: '<integer>'; inherits: true; initial-value: 0; }
+@property --show { syntax: '<integer>'; inherits: true; initial-value: 0; }
+
+/* ---------------------------------------------------------------------
+   2. Theme and page layout
+   --------------------------------------------------------------------- */
+:root {
+  --bg: #0a0c11;
+  --panel: #11151d;
+  --panel-2: #0d1017;
+  --line: #222938;
+  --text: #e7eaf0;
+  --muted: #8a93a6;
+  --ink: #061410;
+  --accent: #7cf6c4;
+  --accent-2: #ff8bd1;
+  --warn: #ffd166;
+  --h: 3.25rem; /* height of one instruction in the step window */
+  --mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SF Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 400 17px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 5% -10%, #18304a66, transparent 60%),
+    radial-gradient(50rem 32rem at 105% 5%, #4a1b3d55, transparent 60%);
+}
+
+code, pre, kbd { font-family: var(--mono); }
+a { color: var(--accent); }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 1.25rem; }
+
+.hero { padding: 5rem 0 3rem; }
+
+.eyebrow {
+  margin: 0;
+  font: 600 .8rem var(--mono);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+h1 {
+  font-size: clamp(2.6rem, 7vw, 5rem);
+  line-height: 1;
+  letter-spacing: -.035em;
+  margin: .35em 0 .3em;
+}
+
+h1 span {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.lede { font-size: 1.25rem; color: var(--muted); max-width: 44rem; margin: 0; }
+.lede strong { color: var(--text); }
+
+.toc { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 2rem; }
+.toc a {
+  font: 600 .85rem var(--mono);
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 999px;
+  padding: .45rem 1rem;
+}
+.toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+.parts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+.part {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+}
+.part h3 { margin: 0 0 .3rem; font-size: .95rem; }
+.part p { margin: 0; color: var(--muted); font-size: .92rem; }
+.part code { color: var(--accent); font-size: .85em; }
+
+section.demo { padding: 3.5rem 0; border-top: 1px solid var(--line); }
+
+.demo-head { display: flex; align-items: baseline; gap: 1rem; }
+.num { font: 600 1rem var(--mono); color: var(--accent-2); }
+h2 { font-size: 2rem; margin: 0; letter-spacing: -.02em; }
+.intro { color: var(--muted); max-width: 48rem; }
+.intro code { color: var(--text); }
+
+/* ---------------------------------------------------------------------
+   3. Machine chrome (panels, tapes, registers, code listing)
+   --------------------------------------------------------------------- */
+.mem { display: none; } /* radios are invisible; labels still toggle them */
+
+.machine {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+@media (min-width: 880px) {
+  .machine { grid-template-columns: 1fr 1fr; }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+  min-width: 0;
+}
+
+.panel-title {
+  font: 600 .72rem var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hint { margin: 0; font-size: .85rem; color: var(--muted); }
+
+/* Memory tape: one cell per possible value. The lit cell is computed
+   from the register value with clamp(), not with one rule per cell. */
+.tape {
+  --tint: var(--accent);
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 5px;
+}
+.tape-b { --tint: var(--accent-2); }
+
+.cell {
+  /* hit = 1 when i == v, else 0.   le = 1 when i <= v, else 0. */
+  --hit: calc(1 - clamp(0, var(--v) - var(--i), 1) - clamp(0, var(--i) - var(--v), 1));
+  --le: calc(1 - clamp(0, var(--i) - var(--v), 1));
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font: 700 .85rem/1 var(--mono);
+  user-select: none;
+  border: 1px solid color-mix(in oklab, var(--tint) calc(var(--hit) * 100%), var(--line));
+  background: color-mix(in oklab, var(--tint) calc(var(--le) * 12% + var(--hit) * 88%), var(--panel-2));
+  color: color-mix(in oklab, var(--ink) calc(var(--hit) * 100%), var(--muted));
+  box-shadow: 0 0 calc(var(--hit) * 18px) color-mix(in oklab, var(--tint) 55%, transparent);
+  transition: background .25s, color .25s, box-shadow .25s, border-color .25s;
+}
+label.cell { cursor: pointer; }
+label.cell:hover { outline: 1px solid var(--tint); outline-offset: 1px; }
+
+.regs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: .6rem;
+}
+.reg {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: .55rem .75rem;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  min-width: 0;
+}
+.reg > span { font: .74rem var(--mono); color: var(--muted); }
+.reg > b { font: 700 1.45rem/1.2 var(--mono); }
+
+/* Output: CSS counters are the only way to print a number as text. */
+.val::after { counter-reset: v var(--show); content: counter(v); }
+
+/* Program listing with live line highlighting. */
+.code {
+  margin: 0;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: .7rem 0;
+  font: .95rem/1.75 var(--mono);
+  overflow-x: auto;
+}
+.ln {
+  --lit: 0;
+  display: block;
+  padding: 0 1rem;
+  white-space: pre;
+  border-left: 3px solid color-mix(in oklab, var(--accent) calc(var(--lit) * 100%), transparent);
+  background: color-mix(in oklab, var(--accent) calc(var(--lit) * 12%), transparent);
+  opacity: calc(.42 + .58 * var(--lit));
+  transition: opacity .25s, background .25s, border-color .25s;
+}
+.ln .c { color: var(--muted); }
+.ln .k { color: var(--accent-2); }
+
+/* ---------------------------------------------------------------------
+   4. Gates: turn a 0/1 register into "exists" / "does not exist".
+   scale: 0 shrinks an element to a point, so it is invisible AND
+   cannot be clicked. These are the outputs of every if/else.
+   --------------------------------------------------------------------- */
+.stack { display: grid; }
+.stack > * { grid-area: 1 / 1; }
+
+.when-run  { scale: var(--run); }
+.when-stop { scale: calc(1 - var(--run)); }
+.when-gt   { scale: var(--gt); }
+.when-lt   { scale: var(--lt); }
+.when-le   { scale: calc(1 - var(--gt)); }
+.when-run, .when-stop, .when-gt, .when-lt, .when-le {
+  transform-origin: left center;
+  transition: scale .2s ease;
+}
+
+.lit-always { --lit: 1; }
+.lit-run    { --lit: var(--run); }
+.lit-stop   { --lit: calc(1 - var(--run)); }
+.lit-gt     { --lit: var(--gt); }
+.lit-lt     { --lit: var(--lt); }
+.lit-le     { --lit: calc(1 - var(--gt)); }
+
+.next { font: 600 .9rem var(--mono); color: var(--muted); }
+.next b { color: var(--text); }
+
+/* ---------------------------------------------------------------------
+   5. The step window: the clock input.
+   A tall strip of labels slides behind a one-label-high window.
+   CSS computes WHICH label sits in the window; your click performs
+   the write. No transition on the strip: a moving strip could put the
+   wrong label under a fast second click.
+   --------------------------------------------------------------------- */
+.ctrl { min-height: var(--h); }
+
+.step {
+  position: relative;
+  height: var(--h);
+  overflow: hidden;
+  border-radius: 12px;
+  scale: var(--run);
+  transition: scale .2s ease;
+  box-shadow: 0 10px 34px -12px color-mix(in oklab, var(--accent) 75%, transparent);
+}
+
+.strip { position: absolute; top: 0; left: 0; right: 0; }
+
+.strip label {
+  height: var(--h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  font: 700 1rem var(--mono);
+  color: var(--ink);
+  background: linear-gradient(135deg, var(--accent), #5ad1ff);
+  cursor: pointer;
+  user-select: none;
+}
+.strip-b label { background: linear-gradient(135deg, var(--accent-2), #ffb36b); }
+.strip label:hover { filter: brightness(1.08); }
+.strip label:active { filter: brightness(.9); }
+
+.done {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  height: var(--h);
+  border-radius: 12px;
+  border: 1px dashed var(--accent);
+  color: var(--accent);
+  font: 700 1rem var(--mono);
+  scale: calc(1 - var(--run));
+  transition: scale .2s ease;
+}
+
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+
+.reset {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: .35rem .95rem;
+  font: .8rem var(--mono);
+  cursor: pointer;
+}
+.reset:hover { color: var(--text); border-color: var(--muted); }
+
+details {
+  margin-top: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+summary { cursor: pointer; padding: .8rem 1rem; font: 600 .88rem var(--mono); color: var(--accent); }
+details pre {
+  margin: 0;
+  padding: 0 1rem 1rem;
+  font: .84rem/1.6 var(--mono);
+  overflow-x: auto;
+  color: #c8d0e0;
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 2.5rem 0 4rem;
+  color: var(--muted);
+  font-size: .92rem;
+}
+
+/* =====================================================================
+   01 · WHILE LOOP          while (n > 0) { n = n - 1; }
+   ===================================================================== */
+
+/* Load memory into the register (one rule per possible value). */
+#w-0:checked ~ .machine { --n: 0; }
+#w-1:checked ~ .machine { --n: 1; }
+#w-2:checked ~ .machine { --n: 2; }
+#w-3:checked ~ .machine { --n: 3; }
+#w-4:checked ~ .machine { --n: 4; }
+#w-5:checked ~ .machine { --n: 5; }
+#w-6:checked ~ .machine { --n: 6; }
+#w-7:checked ~ .machine { --n: 7; }
+#w-8:checked ~ .machine { --n: 8; }
+#w-9:checked ~ .machine { --n: 9; }
+
+.m-while {
+  --run: clamp(0, var(--n), 1);     /* condition: n > 0  ->  1 or 0 */
+}
+.m-while .tape { --v: var(--n); }
+.m-while .val-n { --show: var(--n); }
+.m-while .val-run { --show: var(--run); }
+
+/* Body: n = n - 1. Slide the strip so the label for (n - 1) is in the window. */
+.m-while .strip {
+  translate: 0 calc((var(--n) - 1) * var(--h) * -1);
+}
+
+/* =====================================================================
+   02 · IF / ELSE           if (x > y) max = x; else max = y;
+   ===================================================================== */
+#x-0:checked ~ .machine { --x: 0; }
+#x-1:checked ~ .machine { --x: 1; }
+#x-2:checked ~ .machine { --x: 2; }
+#x-3:checked ~ .machine { --x: 3; }
+#x-4:checked ~ .machine { --x: 4; }
+#x-5:checked ~ .machine { --x: 5; }
+#x-6:checked ~ .machine { --x: 6; }
+#x-7:checked ~ .machine { --x: 7; }
+#x-8:checked ~ .machine { --x: 8; }
+#x-9:checked ~ .machine { --x: 9; }
+
+#y-0:checked ~ .machine { --y: 0; }
+#y-1:checked ~ .machine { --y: 1; }
+#y-2:checked ~ .machine { --y: 2; }
+#y-3:checked ~ .machine { --y: 3; }
+#y-4:checked ~ .machine { --y: 4; }
+#y-5:checked ~ .machine { --y: 5; }
+#y-6:checked ~ .machine { --y: 6; }
+#y-7:checked ~ .machine { --y: 7; }
+#y-8:checked ~ .machine { --y: 8; }
+#y-9:checked ~ .machine { --y: 9; }
+
+.m-if {
+  /* Comparator: 1 if x > y, otherwise 0. */
+  --gt: clamp(0, var(--x) - var(--y), 1);
+  /* Branchless select (a multiplexer): picks x when gt = 1, y when gt = 0. */
+  --max: calc(var(--gt) * var(--x) + (1 - var(--gt)) * var(--y));
+}
+.m-if .tape-x   { --v: var(--x); }
+.m-if .tape-y   { --v: var(--y); --tint: var(--accent-2); }
+.m-if .tape-max { --v: var(--max); --tint: var(--warn); }
+.m-if .val-x    { --show: var(--x); }
+.m-if .val-y    { --show: var(--y); }
+.m-if .val-diff { --show: calc(var(--x) - var(--y)); }
+.m-if .val-gt   { --show: var(--gt); }
+.m-if .val-max  { --show: var(--max); }
+
+/* =====================================================================
+   03 · EUCLID'S GCD
+        while (a != b) { if (a > b) a = a - b; else b = b - a; }
+   ===================================================================== */
+#a-1:checked  ~ .machine { --a: 1; }
+#a-2:checked  ~ .machine { --a: 2; }
+#a-3:checked  ~ .machine { --a: 3; }
+#a-4:checked  ~ .machine { --a: 4; }
+#a-5:checked  ~ .machine { --a: 5; }
+#a-6:checked  ~ .machine { --a: 6; }
+#a-7:checked  ~ .machine { --a: 7; }
+#a-8:checked  ~ .machine { --a: 8; }
+#a-9:checked  ~ .machine { --a: 9; }
+#a-10:checked ~ .machine { --a: 10; }
+#a-11:checked ~ .machine { --a: 11; }
+#a-12:checked ~ .machine { --a: 12; }
+#a-13:checked ~ .machine { --a: 13; }
+#a-14:checked ~ .machine { --a: 14; }
+#a-15:checked ~ .machine { --a: 15; }
+#a-16:checked ~ .machine { --a: 16; }
+#a-17:checked ~ .machine { --a: 17; }
+#a-18:checked ~ .machine { --a: 18; }
+#a-19:checked ~ .machine { --a: 19; }
+#a-20:checked ~ .machine { --a: 20; }
+#a-21:checked ~ .machine { --a: 21; }
+#a-22:checked ~ .machine { --a: 22; }
+#a-23:checked ~ .machine { --a: 23; }
+#a-24:checked ~ .machine { --a: 24; }
+#a-25:checked ~ .machine { --a: 25; }
+#a-26:checked ~ .machine { --a: 26; }
+#a-27:checked ~ .machine { --a: 27; }
+#a-28:checked ~ .machine { --a: 28; }
+#a-29:checked ~ .machine { --a: 29; }
+#a-30:checked ~ .machine { --a: 30; }
+
+#b-1:checked  ~ .machine { --b: 1; }
+#b-2:checked  ~ .machine { --b: 2; }
+#b-3:checked  ~ .machine { --b: 3; }
+#b-4:checked  ~ .machine { --b: 4; }
+#b-5:checked  ~ .machine { --b: 5; }
+#b-6:checked  ~ .machine { --b: 6; }
+#b-7:checked  ~ .machine { --b: 7; }
+#b-8:checked  ~ .machine { --b: 8; }
+#b-9:checked  ~ .machine { --b: 9; }
+#b-10:checked ~ .machine { --b: 10; }
+#b-11:checked ~ .machine { --b: 11; }
+#b-12:checked ~ .machine { --b: 12; }
+#b-13:checked ~ .machine { --b: 13; }
+#b-14:checked ~ .machine { --b: 14; }
+#b-15:checked ~ .machine { --b: 15; }
+#b-16:checked ~ .machine { --b: 16; }
+#b-17:checked ~ .machine { --b: 17; }
+#b-18:checked ~ .machine { --b: 18; }
+#b-19:checked ~ .machine { --b: 19; }
+#b-20:checked ~ .machine { --b: 20; }
+#b-21:checked ~ .machine { --b: 21; }
+#b-22:checked ~ .machine { --b: 22; }
+#b-23:checked ~ .machine { --b: 23; }
+#b-24:checked ~ .machine { --b: 24; }
+#b-25:checked ~ .machine { --b: 25; }
+#b-26:checked ~ .machine { --b: 26; }
+#b-27:checked ~ .machine { --b: 27; }
+#b-28:checked ~ .machine { --b: 28; }
+#b-29:checked ~ .machine { --b: 29; }
+#b-30:checked ~ .machine { --b: 30; }
+
+.m-gcd {
+  --gt: clamp(0, var(--a) - var(--b), 1);   /* a > b */
+  --lt: clamp(0, var(--b) - var(--a), 1);   /* a < b */
+  --run: calc(var(--gt) + var(--lt));       /* a != b : the while condition */
+}
+.m-gcd .tape-a   { --v: var(--a); }
+.m-gcd .tape-b   { --v: var(--b); }
+.m-gcd .val-a    { --show: var(--a); }
+.m-gcd .val-b    { --show: var(--b); }
+.m-gcd .val-diff { --show: calc(var(--a) - var(--b)); }
+
+/* if branch: a = a - b. Only exists when a > b. */
+.m-gcd .strip-a {
+  scale: var(--gt);
+  translate: 0 calc((var(--a) - var(--b) - 1) * var(--h) * -1);
+}
+/* else branch: b = b - a. Only exists when a < b. */
+.m-gcd .strip-b {
+  scale: var(--lt);
+  translate: 0 calc((var(--b) - var(--a) - 1) * var(--h) * -1);
+}
